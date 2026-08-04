@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data (keep raw, ignore processed outputs)
+data/processed/*
+data/output/*
+!data/processed/.gitkeep
+!data/output/.gitkeep
+
+# Database
+*.db
+
+# Logs
+logs/*.log
+!logs/.gitkeep
+
+# Tests
+tests/*
+!tests/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Environment
+.env
