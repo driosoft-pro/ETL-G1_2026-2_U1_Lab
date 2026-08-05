@@ -11,64 +11,8 @@ The pipeline processes sales transaction data from three branches in Colombia (C
 ---
 
 ## 2. System Architecture
+![Diagrama del proyecto](docs/image.png)
 
-```
-┌─────────────────────┐
-│  Business Requirements │ (from Lab 1A)
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│    Data Sources      │
-│  ┌─────┬─────┬─────┐ │
-│  │ CSV │JSON │ XML │ │
-│  └─────┴─────┴─────┘ │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│      Extract         │
-│  Read CSV, JSON, XML │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│      Profile         │
-│  Statistics & Quality│
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│   Clean/Harmonize    │
-│  Fix issues found    │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Transform/Integrate  │
-│  Join & Calculate    │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│      Validate        │
-│  Quality checks      │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│       Load           │
-│  CSV + SQLite (sales_analytics)
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Query & Evaluate    │
-│  Business Requirements│
-└─────────────────────┘
-```
-
----
 
 ## 3. Selected Business Requirements
 
