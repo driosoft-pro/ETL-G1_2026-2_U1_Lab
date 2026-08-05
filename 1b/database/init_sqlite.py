@@ -16,6 +16,12 @@ def init_database(db_path: Path = DB_PATH) -> None:
     try:
         cur = conn.cursor()
 
+        cur.execute("DROP TABLE IF EXISTS sales_analytics")
+        cur.execute("DROP TABLE IF EXISTS monthly_targets")
+        cur.execute("DROP TABLE IF EXISTS promotions")
+        cur.execute("DROP TABLE IF EXISTS stores")
+        cur.execute("DROP TABLE IF EXISTS products")
+
         cur.execute("""
             CREATE TABLE IF NOT EXISTS products (
                 product_id TEXT PRIMARY KEY,
