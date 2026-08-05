@@ -25,12 +25,12 @@ SRC_DIR = BASE_DIR / "src"
 
 sys.path.insert(0, str(SRC_DIR))
 
-from extract import extract_all
+from extract import extract_all, extract_csv
 from profile import profile_dataframe, save_profile_report
 from clean import clean_transactions, clean_references
 from transform import transform_all
 from validate import validate_all
-from load import load_to_csv, load_to_sqlite, load_references_to_sqlite, create_tables
+from load import load_to_csv, load_to_sqlite, load_references_to_sqlite, create_tables, create_vanilla_database
 from queries import run_queries
 
 STEPS = [
@@ -43,6 +43,7 @@ STEPS = [
     ("7", "Load data", "Export to CSV and load into SQLite"),
     ("8", "Run queries", "Execute analytical queries for business KPIs"),
     ("9", "Run full pipeline", "Execute all steps sequentially with progress"),
+    ("10", "Create vanilla DB", "Export raw data to vanilla_analytics.db (no treatment)"),
 ]
 
 
@@ -97,10 +98,11 @@ def run_pipeline():
         # Step 2: Extract
         print(f"\n[2/{total}] Extracting data from source files...")
         raw_data = extract_all(DATA_DIR / "raw")
-        n = len(raw_data["transactions"])
-        print(f"  CSV: {n} rows from sales_cali.csv")
-        print(f"  JSON: {len(raw_data['transactions']) - n} rows from sales_bogota.json")
-        print(f"  XML: rows from sales_medellin.xml")
+        csv_df = extract_csv(DATA_DIR / "raw" / "sales_cali.csv")
+        print(f"  CSV (Cali): {len(csv_df)} rows")
+        print(f"  JSON (Bogotá): {len(raw_data['transactions']) - len(csv_df)} rows")
+        print(f"  XML (Medellín): {len(raw_data['transactions']) - len(csv_df)} rows")
+        print(f"  Total transactions: {len(raw_data['transactions'])} rows")
         print(f"  Reference tables: products({len(raw_data['products'])}), stores({len(raw_data['stores'])}), promotions({len(raw_data['promotions'])}), targets({len(raw_data['targets'])})")
         print(f"  [2/{total}] Extract [ OK ]")
 
@@ -113,7 +115,7 @@ def run_pipeline():
         print(f"\n[4/{total}] Cleaning transactions...")
         cleaned = _run_clean(raw_data)
         cleaned_transactions, cleaned_refs = cleaned
-        removed = n - len(cleaned_transactions)
+        removed = len(raw_data["transactions"]) - len(cleaned_transactions)
         print(f"  Removed {removed} rows (duplicates, invalids, nulls)")
         print(f"  Remaining: {len(cleaned_transactions)} transactions")
         print(f"  [4/{total}] Clean [ OK ]")
@@ -246,6 +248,19 @@ if __name__ == "__main__":
         if choice == "9":
             if confirm("Run full pipeline"):
                 run_pipeline()
+            input("\nPress Enter to continue...")
+            clear_screen()
+            continue
+
+        if choice == "10":
+            if confirm("Create vanilla_analytics.db (raw data, no treatment)"):
+                print("\n--- Creating Vanilla Database ---\n")
+                raw_data = extract_all(DATA_DIR / "raw")
+                vanilla_path = DATA_DIR / "vanilla_analytics.db"
+                create_vanilla_database(raw_data, vanilla_path)
+                print(f"\n  Vanilla database created at {vanilla_path}")
+                print(f"  Tables: sales_raw, products, stores, promotions, monthly_targets")
+                print(f"  All data is raw (no cleaning, no type conversion)")
             input("\nPress Enter to continue...")
             clear_screen()
             continue

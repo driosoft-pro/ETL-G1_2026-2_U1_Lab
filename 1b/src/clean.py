@@ -10,6 +10,21 @@ STRING_COLUMNS = [
 ]
 
 
+def _parse_dates(series: pd.Series) -> pd.Series:
+    """Parse dates in multiple formats: YYYY-MM-DD, DD/MM/YYYY, MM-DD-YYYY."""
+    result = pd.to_datetime(series, format="%Y-%m-%d", errors="coerce")
+    mask = result.isna()
+    if mask.any():
+        result[mask] = pd.to_datetime(series[mask], format="%d/%m/%Y", errors="coerce")
+    mask = result.isna()
+    if mask.any():
+        result[mask] = pd.to_datetime(series[mask], format="%m-%d-%Y", errors="coerce")
+    mask = result.isna()
+    if mask.any():
+        result[mask] = pd.to_datetime(series[mask], dayfirst=True, errors="coerce")
+    return result
+
+
 def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
     """
     Apply cleaning rules derived from profiling:
@@ -26,7 +41,11 @@ def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip()
 
-    df["sale_date"] = pd.to_datetime(df["sale_date"], errors="coerce")
+    for col in ["store_id", "product_id", "payment_method"]:
+        if col in df.columns:
+            df[col] = df[col].str.upper()
+
+    df["sale_date"] = _parse_dates(df["sale_date"])
     df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
     df["unit_price"] = pd.to_numeric(df["unit_price"], errors="coerce")
 
@@ -50,6 +69,9 @@ def clean_references(products: pd.DataFrame, stores: pd.DataFrame,
         df.columns = [c.strip().lower() for c in df.columns]
         for col in df.select_dtypes(include=["object", "string"]).columns:
             df[col] = df[col].astype(str).str.strip()
+        for col in ["store_id", "product_id"]:
+            if col in df.columns:
+                df[col] = df[col].str.upper()
         return df
 
     return {
