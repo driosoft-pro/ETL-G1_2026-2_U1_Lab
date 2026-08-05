@@ -36,6 +36,28 @@ def load_to_sqlite(df: pd.DataFrame, table_name: str = "sales_analytics",
         conn.close()
 
 
+def load_references_to_sqlite(references: dict, db_path: Path = DB_PATH) -> None:
+    """Load reference tables (products, stores, promotions, targets) into SQLite."""
+    table_map = {
+        "products": "products",
+        "stores": "stores",
+        "promotions": "promotions",
+        "targets": "monthly_targets",
+    }
+    conn = get_connection(db_path)
+    try:
+        for key, table_name in table_map.items():
+            if key in references:
+                df = references[key]
+                cur = conn.cursor()
+                cur.execute(f"DELETE FROM {table_name}")
+                df.to_sql(table_name, conn, if_exists="append", index=False)
+                print(f"  Loaded {len(df)} rows into {table_name}")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def create_tables(db_path: Path = DB_PATH) -> None:
     """Create tables in SQLite database."""
     from database.init_sqlite import init_database

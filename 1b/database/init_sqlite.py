@@ -21,7 +21,7 @@ def init_database(db_path: Path = DB_PATH) -> None:
                 product_id TEXT PRIMARY KEY,
                 product_name TEXT NOT NULL,
                 category TEXT,
-                subcategory TEXT,
+                list_price REAL,
                 unit_cost REAL
             )
         """)
@@ -37,11 +37,13 @@ def init_database(db_path: Path = DB_PATH) -> None:
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS promotions (
-                promo_code TEXT PRIMARY KEY,
-                description TEXT,
-                discount_pct REAL,
+                promotion_code TEXT PRIMARY KEY,
+                product_id TEXT,
                 start_date TEXT,
-                end_date TEXT
+                end_date TEXT,
+                discount_pct REAL,
+                campaign_name TEXT,
+                FOREIGN KEY (product_id) REFERENCES products(product_id)
             )
         """)
 
@@ -49,7 +51,7 @@ def init_database(db_path: Path = DB_PATH) -> None:
             CREATE TABLE IF NOT EXISTS monthly_targets (
                 store_id TEXT,
                 month TEXT,
-                target_sales REAL,
+                sales_target REAL,
                 PRIMARY KEY (store_id, month),
                 FOREIGN KEY (store_id) REFERENCES stores(store_id)
             )

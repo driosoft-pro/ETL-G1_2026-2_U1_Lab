@@ -30,7 +30,7 @@ from profile import profile_dataframe, save_profile_report
 from clean import clean_transactions, clean_references
 from transform import transform_all
 from validate import validate_all
-from load import load_to_csv, load_to_sqlite, create_tables
+from load import load_to_csv, load_to_sqlite, load_references_to_sqlite, create_tables
 from queries import run_queries
 
 STEPS = [
@@ -145,7 +145,9 @@ def run_pipeline():
         load_to_csv(integrated, DATA_DIR / "processed" / "sales_analytics.csv")
         print(f"  CSV: data/processed/sales_analytics.csv")
         load_to_sqlite(integrated, "sales_analytics", db_path)
-        print(f"  SQLite: sales_analytics table")
+        print(f"  SQLite: sales_analytics table ({len(integrated)} rows)")
+        _, cleaned_refs = cleaned
+        load_references_to_sqlite(cleaned_refs, db_path)
         print(f"  [7/{total}] Load [ OK ]")
 
         # Step 8: Queries
@@ -223,9 +225,11 @@ def _run_validate(integrated, cleaned):
         raise ValueError(f"Validation errors: {validation['errors']}")
 
 
-def _run_load(integrated, db_path):
+def _run_load(integrated, cleaned, db_path):
     load_to_csv(integrated, DATA_DIR / "processed" / "sales_analytics.csv")
     load_to_sqlite(integrated, "sales_analytics", db_path)
+    _, cleaned_refs = cleaned
+    load_references_to_sqlite(cleaned_refs, db_path)
 
 
 if __name__ == "__main__":
@@ -307,7 +311,9 @@ if __name__ == "__main__":
                 load_to_csv(integrated, DATA_DIR / "processed" / "sales_analytics.csv")
                 print(f"  CSV: data/processed/sales_analytics.csv")
                 load_to_sqlite(integrated, "sales_analytics", DATA_DIR / "retail_analytics.db")
-                print(f"  SQLite: sales_analytics table")
+                print(f"  SQLite: sales_analytics table ({len(integrated)} rows)")
+                _, cleaned_refs = cleaned
+                load_references_to_sqlite(cleaned_refs, DATA_DIR / "retail_analytics.db")
             elif choice == "8":
                 results = run_queries(DATA_DIR / "retail_analytics.db")
                 for name in results:
