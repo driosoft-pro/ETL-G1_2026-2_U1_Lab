@@ -45,3 +45,12 @@ build/
 
 # Environment
 .env
+
+# Direnv
+.direnv/
+
+# OpenCode
+.opencode/
+
+# Agent instructions
+AGENTS.md
