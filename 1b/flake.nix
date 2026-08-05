@@ -1,10 +1,9 @@
 ###############################################################
-# flake.nix — Python APIFlask Development Environment
-# Template: python/template-python-apiflask
-# Python 3.12 + uv + APIFlask (Flask para APIs)
+# flake.nix — Python Data Science Environment
+# Python 3.12 + uv + Jupyter + NumPy + Pandas
 ###############################################################
 {
-  description = "Entorno de desarrollo APIFlask con uv";
+  description = "Entorno de Data Science con Jupyter";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
@@ -18,6 +17,13 @@
         ipykernel
         pyzmq
         jupyter-client
+        notebook
+        ipywidgets
+        numpy
+        pandas
+        matplotlib
+        seaborn
+        scikit-learn
         flask
         apiflask
         sqlalchemy
@@ -49,20 +55,18 @@
 
           echo ""
           echo "╔══════════════════════════════════════════════════╗"
-          echo "║  APIFlask Development Environment (uv)           ║"
+          echo "║  Data Science Environment (uv)                   ║"
           echo "╚══════════════════════════════════════════════════╝"
           echo ""
           echo "Python: $(python --version)"
           echo "uv:     $(uv --version)"
           echo ""
           echo "Comandos:"
-          echo "  flask run                Servidor dev"
-          echo "  uv pip install <pkg>    Instalar paquete"
-          echo "  pytest                   Tests"
-          echo "  black .                  Formatear"
+          echo "  jupyter lab         JupyterLab"
+          echo "  jupyter notebook    Notebook clásico"
+          echo "  uv pip install <pkg> Instalar paquete"
           echo ""
-          echo "APIFlask: Flask simplificado para APIs REST"
-          echo "Docs: https://apiflask.com/docs"
+          echo "Stack: NumPy, Pandas, Matplotlib, Scikit-learn"
           echo ""
         '';
       };
