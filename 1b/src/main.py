@@ -43,7 +43,6 @@ STEPS = [
     ("7", "Load data", "Export to CSV and load into SQLite"),
     ("8", "Run queries", "Execute analytical queries for business KPIs"),
     ("9", "Run full pipeline", "Execute all steps sequentially with progress"),
-    ("10", "Create vanilla DB", "Export raw data to vanilla_analytics.db (no treatment)"),
 ]
 
 
@@ -62,7 +61,7 @@ def show_menu():
     print("=" * 50)
     for num, name, desc in STEPS:
         print(f"  [{num}] {name:<25} - {desc}")
-    print("  [0] Exit")
+    print("  [q] Exit")
     print("=" * 50)
 
 
@@ -241,26 +240,13 @@ if __name__ == "__main__":
 
         choice = input("\nSelect an option: ").strip()
 
-        if choice == "0":
+        if choice == "q":
             print("Exiting.")
             break
 
         if choice == "9":
             if confirm("Run full pipeline"):
                 run_pipeline()
-            input("\nPress Enter to continue...")
-            clear_screen()
-            continue
-
-        if choice == "10":
-            if confirm("Create vanilla_analytics.db (raw data, no treatment)"):
-                print("\n--- Creating Vanilla Database ---\n")
-                raw_data = extract_all(DATA_DIR / "raw")
-                vanilla_path = DATA_DIR / "vanilla_analytics.db"
-                create_vanilla_database(raw_data, vanilla_path)
-                print(f"\n  Vanilla database created at {vanilla_path}")
-                print(f"  Tables: sales_raw, products, stores, promotions, monthly_targets")
-                print(f"  All data is raw (no cleaning, no type conversion)")
             input("\nPress Enter to continue...")
             clear_screen()
             continue
