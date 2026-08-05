@@ -54,9 +54,9 @@ Mauricio Taborda Gongora
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
 
-This report documents the business requirements analysis for a retail sales analytics platform (\textit{Retail Analytics}). The objective of Lab 1A is to understand the business problem, define commercial objectives, identify functional and non-functional requirements, and design a dashboard wireframe that will serve as the foundation for the ETL process to be implemented in Lab 1B \cite{dama2017}.
+This report documents the business requirements analysis for a retail sales analytics platform (\textit{Retail Analytics}). The objective of Lab 1A is to understand the business problem, define commercial objectives, identify functional and non-functional requirements, and design a dashboard wireframe that will serve as the foundation for the ETL process to be implemented in Lab 1B.
 
-The project team consists of three members with defined roles following agile methodologies: a Project Manager, a Product Owner, and a Development Team member \cite{pmi2021}.
+The project team consists of four members with defined roles following agile methodologies: a Project Manager, a Product Owners, and a Development Team member.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Business Problem Analysis}
@@ -257,7 +257,22 @@ Historical Trends & Sales history & POS System & Compare periods and detect patt
 \caption{Data requirements table with sources and transformations.}
 \end{figure}
 
+\subsection{Reflection}
+
+\subsubsection{a. Does all the data come from a single source?}
+
+No. The scenario indicates that sales information comes from the POS System, while promotions come from the Promotion System, and commercial goals are managed in a separate Commercial Goals System. Therefore, the information is distributed across multiple sources.
+
+\subsubsection{b. What challenge does the organization face if information is distributed across several systems?}
+
+The company must integrate data with different structures and formats to obtain a unified and consistent view of the business. Without this integration, analyses may be incomplete or inconsistent.
+
+\subsubsection{c. Can a dashboard answer these questions without integrating multiple data sources?}
+
+No. A dashboard only visualizes available information. If data remains separated across the POS System, the Promotion System, and the Commercial Goals System, it will not be possible to answer questions combining these elements or obtain complete indicators. Data integration is an essential prerequisite.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \section{User Stories}
 
 \subsection{Story 1}
@@ -381,7 +396,7 @@ The lab asks to design a low-fidelity wireframe of the dashboard. The proposal i
 
 \textbf{Export:} A section for exporting reports in PDF or Excel, since the client mentioned the need to download reports.
 
-The dashboard follows a logical reading flow: filters (define the context) $\rightarrow$ KPIs (overview) $\rightarrow$ charts (deep analysis) $\rightarrow$ details (goal compliance) $\rightarrow$ export (share information) \cite{kimball2013}.
+The dashboard follows a logical reading flow: filters (define the context) $\rightarrow$ KPIs (overview) $\rightarrow$ charts (deep analysis) $\rightarrow$ details (goal compliance) $\rightarrow$ export (share information).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Preparing for Lab 1B}
@@ -408,7 +423,7 @@ Enable report generation & Consolidated ETL dataset & Integrate all processed da
 
 \subsection{Transformation Justification}
 
-The proposed transformations correspond to the classic stages of an ETL process \cite{inmon2005}:
+The proposed transformations correspond to the classic stages of an ETL process:
 
 \begin{table}[H]
 \centering
@@ -451,7 +466,7 @@ No. This activity showed that building a dashboard is actually one of the last v
 
 This prior work made clear that the data sources involved (POS System, Product Catalog, Store Catalog, Commercial Goals System, and Promotion System) need to be integrated before any KPI can be trusted. If the team had started by designing the dashboard, it likely would have missed requirements such as mobile access, security levels, or the need to relate promotions to sales.
 
-In short, the dashboard is the visible outcome of the process, but the real first step is understanding the business problem and the data needed to solve it \cite{dama2017}.
+In short, the dashboard is the visible outcome of the process, but the real first step is understanding the business problem and the data needed to solve it.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{AI Prompts}
