@@ -1,0 +1,8 @@
+# Direnv
+.direnv/
+
+# OpenCode
+.opencode/
+
+# Agent instructions
+AGENTS.md

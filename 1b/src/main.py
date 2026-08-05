@@ -26,7 +26,7 @@ SRC_DIR = BASE_DIR / "src"
 sys.path.insert(0, str(SRC_DIR))
 
 from extract import extract_all, extract_csv
-from profile import profile_dataframe, save_profile_report
+from profiling import profile_dataframe, save_profile_report
 from clean import clean_transactions, clean_references
 from transform import transform_all
 from validate import validate_all

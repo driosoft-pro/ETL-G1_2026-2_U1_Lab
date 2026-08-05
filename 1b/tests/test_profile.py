@@ -4,7 +4,7 @@ Tests for profile module.
 import pytest
 import pandas as pd
 from pathlib import Path
-from src.profile import profile_dataframe, generate_profile_report, save_profile_report
+from src.profiling import profile_dataframe, generate_profile_report, save_profile_report
 from src.extract import extract_all
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
