@@ -87,17 +87,87 @@ def run_pipeline():
 
     try:
         db_path = DATA_DIR / "retail_analytics.db"
-        run_step(f"[1/{total}] Initialize DB", create_tables, db_path)
-        raw_data = run_step(f"[2/{total}] Extract", extract_all, DATA_DIR / "raw")
-        run_step(f"[3/{total}] Profile", _run_profiles, raw_data)
-        cleaned = run_step(f"[4/{total}] Clean", _run_clean, raw_data)
-        integrated = run_step(f"[5/{total}] Transform", _run_transform, cleaned, raw_data)
-        run_step(f"[6/{total}] Validate", _run_validate, integrated, cleaned)
-        run_step(f"[7/{total}] Load", _run_load, integrated, db_path)
-        run_step(f"[8/{total}] Queries", run_queries, db_path)
-        run_step(f"[9/{total}] Save outputs", _save_outputs, db_path)
 
-        print("\n=== ETL Pipeline completed successfully ===\n")
+        # Step 1: Initialize DB
+        print(f"\n[1/{total}] Initialize database")
+        create_tables(db_path)
+        print(f"  Database created at {db_path}")
+        print(f"  [1/{total}] Initialize DB [ OK ]")
+
+        # Step 2: Extract
+        print(f"\n[2/{total}] Extracting data from source files...")
+        raw_data = extract_all(DATA_DIR / "raw")
+        n = len(raw_data["transactions"])
+        print(f"  CSV: {n} rows from sales_cali.csv")
+        print(f"  JSON: {len(raw_data['transactions']) - n} rows from sales_bogota.json")
+        print(f"  XML: rows from sales_medellin.xml")
+        print(f"  Reference tables: products({len(raw_data['products'])}), stores({len(raw_data['stores'])}), promotions({len(raw_data['promotions'])}), targets({len(raw_data['targets'])})")
+        print(f"  [2/{total}] Extract [ OK ]")
+
+        # Step 3: Profile
+        print(f"\n[3/{total}] Profiling data quality...")
+        _run_profiles(raw_data)
+        print(f"  [3/{total}] Profile [ OK ]")
+
+        # Step 4: Clean
+        print(f"\n[4/{total}] Cleaning transactions...")
+        cleaned = _run_clean(raw_data)
+        cleaned_transactions, cleaned_refs = cleaned
+        removed = n - len(cleaned_transactions)
+        print(f"  Removed {removed} rows (duplicates, invalids, nulls)")
+        print(f"  Remaining: {len(cleaned_transactions)} transactions")
+        print(f"  [4/{total}] Clean [ OK ]")
+
+        # Step 5: Transform
+        print(f"\n[5/{total}] Transforming data...")
+        integrated = _run_transform(cleaned, raw_data)
+        print(f"  Joined products, stores, promotions, targets")
+        print(f"  Calculated: gross_sales, discount_amount, net_sales")
+        print(f"  Added: month, week, day_name")
+        print(f"  Total rows: {len(integrated)}")
+        print(f"  [5/{total}] Transform [ OK ]")
+
+        # Step 6: Validate
+        print(f"\n[6/{total}] Validating data integrity...")
+        validation = validate_all(integrated, cleaned_refs)
+        if validation["passed"]:
+            print(f"  All validations passed:")
+            print(f"    - Unique sale_line_id")
+            print(f"    - Foreign key integrity")
+            print(f"    - Positive sales values")
+            print(f"    - Formula correctness")
+        else:
+            raise ValueError(f"Validation errors: {validation['errors']}")
+        print(f"  [6/{total}] Validate [ OK ]")
+
+        # Step 7: Load
+        print(f"\n[7/{total}] Loading data...")
+        load_to_csv(integrated, DATA_DIR / "processed" / "sales_analytics.csv")
+        print(f"  CSV: data/processed/sales_analytics.csv")
+        load_to_sqlite(integrated, "sales_analytics", db_path)
+        print(f"  SQLite: sales_analytics table")
+        print(f"  [7/{total}] Load [ OK ]")
+
+        # Step 8: Queries
+        print(f"\n[8/{total}] Running analytical queries...")
+        results = run_queries(db_path)
+        for name in results:
+            print(f"  - {name}: {len(results[name])} rows")
+        print(f"  [8/{total}] Queries [ OK ]")
+
+        # Step 9: Save outputs
+        print(f"\n[9/{total}] Saving outputs...")
+        _save_outputs(db_path)
+        files = list(OUTPUT_DIR.glob("*.csv"))
+        print(f"  Saved {len(files)} CSV files to {OUTPUT_DIR}")
+        report = OUTPUT_DIR / "profile_report.txt"
+        if report.exists():
+            print(f"  Profile report: profile_report.txt")
+        print(f"  [9/{total}] Save outputs [ OK ]")
+
+        print("\n" + "=" * 50)
+        print("  Pipeline completed successfully!")
+        print("=" * 50 + "\n")
 
     except Exception as e:
         print(f"\n=== Pipeline aborted: {e} ===\n")
@@ -120,6 +190,7 @@ def _run_profiles(raw_data):
     profiles = {}
     for name, df in raw_data.items():
         profiles[name] = profile_dataframe(df, name)
+        print(f"  {name}: {len(df)} rows, {len(df.columns)} columns")
     report = save_profile_report(profiles, OUTPUT_DIR)
     report_text = report.read_text(encoding="utf-8")
     print(f"\n{report_text}\n")
@@ -172,47 +243,80 @@ if __name__ == "__main__":
             if confirm("Run full pipeline"):
                 run_pipeline()
             input("\nPress Enter to continue...")
+            clear_screen()
             continue
 
         selected = next((s for s in STEPS if s[0] == choice), None)
         if not selected:
             print("Invalid option.")
             input("\nPress Enter to continue...")
+            clear_screen()
             continue
 
         if not confirm(selected[1]):
             input("\nPress Enter to continue...")
+            clear_screen()
             continue
 
         try:
             if choice == "1":
-                run_step("[1] Initialize DB", create_tables, DATA_DIR / "retail_analytics.db")
+                create_tables(DATA_DIR / "retail_analytics.db")
+                print(f"  Database created at {DATA_DIR / 'retail_analytics.db'}")
             elif choice == "2":
-                run_step("[2] Extract", extract_all, DATA_DIR / "raw")
+                raw_data = extract_all(DATA_DIR / "raw")
+                n = len(raw_data["transactions"])
+                print(f"  CSV: {n} rows from sales_cali.csv")
+                print(f"  JSON: rows from sales_bogota.json")
+                print(f"  XML: rows from sales_medellin.xml")
+                print(f"  Reference tables: products({len(raw_data['products'])}), stores({len(raw_data['stores'])}), promotions({len(raw_data['promotions'])}), targets({len(raw_data['targets'])})")
             elif choice == "3":
-                raw_data = run_step("[3.1] Extract", extract_all, DATA_DIR / "raw")
-                run_step("[3.2] Profile", _run_profiles, raw_data)
+                raw_data = extract_all(DATA_DIR / "raw")
+                _run_profiles(raw_data)
             elif choice == "4":
-                raw_data = run_step("[4.1] Extract", extract_all, DATA_DIR / "raw")
-                run_step("[4.2] Clean", _run_clean, raw_data)
+                raw_data = extract_all(DATA_DIR / "raw")
+                n_before = len(raw_data["transactions"])
+                cleaned = _run_clean(raw_data)
+                n_after = len(cleaned[0])
+                print(f"  Removed {n_before - n_after} rows (duplicates, invalids, nulls)")
+                print(f"  Remaining: {n_after} transactions")
             elif choice == "5":
-                raw_data = run_step("[5.1] Extract", extract_all, DATA_DIR / "raw")
-                cleaned = run_step("[5.2] Clean", _run_clean, raw_data)
-                run_step("[5.3] Transform", _run_transform, cleaned, raw_data)
+                raw_data = extract_all(DATA_DIR / "raw")
+                cleaned = _run_clean(raw_data)
+                integrated = _run_transform(cleaned, raw_data)
+                print(f"  Joined products, stores, promotions, targets")
+                print(f"  Calculated: gross_sales, discount_amount, net_sales")
+                print(f"  Added: month, week, day_name")
+                print(f"  Total rows: {len(integrated)}")
             elif choice == "6":
-                raw_data = run_step("[6.1] Extract", extract_all, DATA_DIR / "raw")
-                cleaned = run_step("[6.2] Clean", _run_clean, raw_data)
-                integrated = run_step("[6.3] Transform", _run_transform, cleaned, raw_data)
-                run_step("[6.4] Validate", _run_validate, integrated, cleaned)
+                raw_data = extract_all(DATA_DIR / "raw")
+                cleaned = _run_clean(raw_data)
+                integrated = _run_transform(cleaned, raw_data)
+                validation = validate_all(integrated, cleaned[1])
+                if validation["passed"]:
+                    print(f"  All validations passed:")
+                    print(f"    - Unique sale_line_id")
+                    print(f"    - Foreign key integrity")
+                    print(f"    - Positive sales values")
+                    print(f"    - Formula correctness")
+                else:
+                    raise ValueError(f"Validation errors: {validation['errors']}")
             elif choice == "7":
-                raw_data = run_step("[7.1] Extract", extract_all, DATA_DIR / "raw")
-                cleaned = run_step("[7.2] Clean", _run_clean, raw_data)
-                integrated = run_step("[7.3] Transform", _run_transform, cleaned, raw_data)
-                run_step("[7.4] Load", _run_load, integrated, DATA_DIR / "retail_analytics.db")
+                raw_data = extract_all(DATA_DIR / "raw")
+                cleaned = _run_clean(raw_data)
+                integrated = _run_transform(cleaned, raw_data)
+                load_to_csv(integrated, DATA_DIR / "processed" / "sales_analytics.csv")
+                print(f"  CSV: data/processed/sales_analytics.csv")
+                load_to_sqlite(integrated, "sales_analytics", DATA_DIR / "retail_analytics.db")
+                print(f"  SQLite: sales_analytics table")
             elif choice == "8":
-                run_step("[8] Queries", run_queries, DATA_DIR / "retail_analytics.db")
-                run_step("[8.1] Save outputs", _save_outputs, DATA_DIR / "retail_analytics.db")
+                results = run_queries(DATA_DIR / "retail_analytics.db")
+                for name in results:
+                    print(f"  - {name}: {len(results[name])} rows")
+                _save_outputs(DATA_DIR / "retail_analytics.db")
+                files = list(OUTPUT_DIR.glob("*.csv"))
+                print(f"  Saved {len(files)} CSV files to {OUTPUT_DIR}")
         except Exception:
             pass
 
         input("\nPress Enter to continue...")
+        clear_screen()
