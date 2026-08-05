@@ -109,9 +109,15 @@ Execute queries that answer business requirements from Lab 1A:
 │   │   ├── promotions.csv
 │   │   └── monthly_targets.csv
 │   ├── processed/               # Output CSV files
-│   │   └── .gitkeep
-│   └── output/                  # Additional outputs
-│       └── .gitkeep
+│   │   └── sales_analytics.csv
+│   └── output/                  # Query results + profile report
+│       ├── profile_report.txt
+│       ├── top_products.csv
+│       ├── monthly_performance.csv
+│       ├── regional_analysis.csv
+│       ├── sales_by_region.csv
+│       ├── sales_by_category.csv
+│       └── goal_compliance.csv
 ├── database/
 │   └── init_sqlite.py           # SQLite schema initialization
 ├── docs/
@@ -128,8 +134,13 @@ Execute queries that answer business requirements from Lab 1A:
 │   ├── queries.py               # SQL queries
 │   ├── __init__.py              # Package marker
 │   └── main.py                  # Pipeline orchestration
-├── tests/                       # Test files (pending implementation)
-│   └── .gitkeep
+├── tests/                       # Unit tests
+│   ├── test_extract.py
+│   ├── test_profile.py
+│   ├── test_clean.py
+│   ├── test_transform.py
+│   ├── test_validate.py
+│   └── test_load.py
 └── logs/                        # Pipeline execution logs
     └── .gitkeep
 ```
@@ -196,9 +207,30 @@ Each option requires confirmation (`[y/N]`) before execution. Option `[9]` runs 
 ### Output Files
 | File | Description |
 |------|-------------|
-| `data/processed/sales_analytics.csv` | Processed dataset |
+| `data/processed/sales_analytics.csv` | Processed dataset (239 rows) |
 | `data/retail_analytics.db` | SQLite database with `sales_analytics` table |
+| `data/output/*.csv` | Query results for each business requirement |
 | `logs/etl.log` | Pipeline execution log |
+
+#### Query Results (`data/output/`)
+| File | Business Requirement |
+|------|---------------------|
+| `profile_report.txt` | Full profiling report (rows, nulls, invalids, distinct values) |
+| `top_products.csv` | Top 10 products by net sales |
+| `monthly_performance.csv` | Monthly performance vs targets |
+| `regional_analysis.csv` | Sales analysis by branch |
+| `sales_by_region.csv` | Total sales by region |
+| `sales_by_category.csv` | Sales by product category |
+| `goal_compliance.csv` | Goal compliance by store |
+
+#### Profiling Findings
+The profiling report identifies these cleaning decisions:
+- **Duplicate `sale_line_id`**: 3 duplicates → removed during clean step
+- **Missing `promotion_code`**: 489 nulls (64.09%) → replaced with empty string
+- **Invalid quantities**: 2 records (quantity ≤ 0) → rejected
+- **Invalid prices**: 2 records (unit_price ≤ 0) → rejected
+- **Invalid dates**: 1 unparseable date → dropped via `NaT` coercion
+- **Inconsistent casing**: `store_id` has `s02` vs `S02`, `payment_method` has `card ` vs `Card` → standardized via strip and case normalization
 
 ---
 
@@ -275,12 +307,28 @@ Each option requires confirmation (`[y/N]`) before execution. Option `[9]` runs 
 
 ## 11. Tests
 
-The `tests/` directory is currently empty. Unit tests for each pipeline module (extract, profile, clean, transform, validate, load, queries) are pending implementation.
+Unit tests for each pipeline module. Run with:
 
-To run tests once available:
 ```bash
-pytest
-pytest --cov   # with coverage report
+pytest            # run all tests
+pytest -v         # verbose output
+pytest --cov      # with coverage
+```
+
+### Test Coverage
+
+| Module | File | Tests |
+|--------|------|-------|
+| extract | `tests/test_extract.py` | CSV, JSON, XML extraction, unified schema |
+| profile | `tests/test_profile.py` | Metrics, report generation, file output |
+| clean | `tests/test_clean.py` | Dedup, type conversion, null handling |
+| transform | `tests/test_transform.py` | Joins, derived columns, metrics |
+| validate | `tests/test_validate.py` | Unique IDs, FKs, positives, formulas |
+| load | `tests/test_load.py` | CSV export, SQLite insert, table creation |
+
+### Results
+```
+50 passed in 2.92s
 ```
 
 ---

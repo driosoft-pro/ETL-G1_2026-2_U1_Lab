@@ -26,7 +26,7 @@ SRC_DIR = BASE_DIR / "src"
 sys.path.insert(0, str(SRC_DIR))
 
 from extract import extract_all
-from profile import profile_dataframe
+from profile import profile_dataframe, save_profile_report
 from clean import clean_transactions, clean_references
 from transform import transform_all
 from validate import validate_all
@@ -77,9 +77,12 @@ def run_step(label: str, func, *args, **kwargs):
         raise
 
 
+OUTPUT_DIR = DATA_DIR / "output"
+
+
 def run_pipeline():
     """Execute the full ETL pipeline step by step with progress."""
-    total = 8
+    total = 9
     print("\n--- Running Full Pipeline ---\n")
 
     try:
@@ -92,6 +95,7 @@ def run_pipeline():
         run_step(f"[6/{total}] Validate", _run_validate, integrated, cleaned)
         run_step(f"[7/{total}] Load", _run_load, integrated, db_path)
         run_step(f"[8/{total}] Queries", run_queries, db_path)
+        run_step(f"[9/{total}] Save outputs", _save_outputs, db_path)
 
         print("\n=== ETL Pipeline completed successfully ===\n")
 
@@ -100,9 +104,27 @@ def run_pipeline():
         raise
 
 
+def _save_outputs(db_path):
+    """Clear and save query results and reports to data/output/."""
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    for f in OUTPUT_DIR.glob("*.csv"):
+        f.unlink()
+    results = run_queries(db_path)
+    for name, df in results.items():
+        df.to_csv(OUTPUT_DIR / f"{name}.csv", index=False)
+    logger.info(f"Outputs saved to {OUTPUT_DIR}")
+
+
 def _run_profiles(raw_data):
+    """Profile all datasets, save report, and print it."""
+    profiles = {}
     for name, df in raw_data.items():
-        profile_dataframe(df)
+        profiles[name] = profile_dataframe(df, name)
+    report = save_profile_report(profiles, OUTPUT_DIR)
+    report_text = report.read_text(encoding="utf-8")
+    print(f"\n{report_text}\n")
+    logger.info(f"Profile report saved to {report}")
+    return profiles
 
 
 def _run_clean(raw_data):
@@ -189,6 +211,7 @@ if __name__ == "__main__":
                 run_step("[7.4] Load", _run_load, integrated, DATA_DIR / "retail_analytics.db")
             elif choice == "8":
                 run_step("[8] Queries", run_queries, DATA_DIR / "retail_analytics.db")
+                run_step("[8.1] Save outputs", _save_outputs, DATA_DIR / "retail_analytics.db")
         except Exception:
             pass
 
