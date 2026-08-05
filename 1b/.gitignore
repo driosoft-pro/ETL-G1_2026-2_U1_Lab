@@ -28,8 +28,8 @@ logs/*.log
 !logs/.gitkeep
 
 # Tests
-tests/*
-!tests/.gitkeep
+tests/__pycache__/
+tests/.pytest_cache/
 
 # OS
 .DS_Store
