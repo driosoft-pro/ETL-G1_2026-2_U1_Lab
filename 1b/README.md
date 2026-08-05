@@ -128,7 +128,7 @@ Execute queries that answer business requirements from Lab 1A:
 │   ├── queries.py               # SQL queries
 │   ├── __init__.py              # Package marker
 │   └── main.py                  # Pipeline orchestration
-├── tests/                       # Test files
+├── tests/                       # Test files (pending implementation)
 │   └── .gitkeep
 └── logs/                        # Pipeline execution logs
     └── .gitkeep
@@ -141,11 +141,18 @@ Execute queries that answer business requirements from Lab 1A:
 ### Prerequisites
 - Python 3.12+
 - pip
+- No additional database installation required (`sqlite3` is included in Python's standard library)
+
+### Dependencies
+| Package | Purpose |
+|---------|---------|
+| pandas | Data manipulation and analysis |
+| python-dotenv | Environment variable management |
 
 ### Setup
 ```bash
 # Navigate to Lab 1B directory
-cd Activities/1-2/1b
+cd Activities/1ab/1b
 
 # Create virtual environment
 python -m venv .venv
@@ -164,20 +171,34 @@ cp .env.example .env
 python -m src.main
 ```
 
-The pipeline will:
-1. Create SQLite database at `data/retail_analytics.db`
-2. Extract data from CSV, JSON, and XML sources
-3. Profile the extracted data
-4. Clean and harmonize the data
-5. Transform and integrate with reference tables
-6. Validate data quality
-7. Load to CSV and SQLite
-8. Execute analytical queries
+### Interactive Menu
+The pipeline includes an interactive menu with the following options:
+
+```
+==================================================
+       ETL PIPELINE - RETAIL ANALYTICS
+==================================================
+  [1] Initialize database         - Create SQLite database and tables
+  [2] Extract data                - Read CSV, JSON, and XML source files
+  [3] Profile data                - Analyze data quality and statistics
+  [4] Clean data                  - Standardize, deduplicate, and validate records
+  [5] Transform data              - Join tables and compute derived columns
+  [6] Validate data               - Verify integrity rules and constraints
+  [7] Load data                   - Export to CSV and load into SQLite
+  [8] Run queries                 - Execute analytical queries for business KPIs
+  [9] Run full pipeline           - Execute all steps sequentially with progress
+  [0] Exit
+==================================================
+```
+
+Each option requires confirmation (`[y/N]`) before execution. Option `[9]` runs all 8 steps automatically with progress indicator (`[1/8]` ... `[8/8]`).
 
 ### Output Files
-- `data/processed/sales_analytics.csv` – Processed dataset
-- `data/retail_analytics.db` – SQLite database with `sales_analytics` table
-- `logs/etl.log` – Pipeline execution log
+| File | Description |
+|------|-------------|
+| `data/processed/sales_analytics.csv` | Processed dataset |
+| `data/retail_analytics.db` | SQLite database with `sales_analytics` table |
+| `logs/etl.log` | Pipeline execution log |
 
 ---
 
@@ -251,6 +272,18 @@ The pipeline will:
 5. **Did the team build an ETL pipeline, or did it build a system to solve a business problem?**
    The team built a system to solve a business problem. The ETL pipeline is the mechanism, but the goal is to answer business questions and enable data-driven decision-making.
 
+
+## 11. Tests
+
+The `tests/` directory is currently empty. Unit tests for each pipeline module (extract, profile, clean, transform, validate, load, queries) are pending implementation.
+
+To run tests once available:
+```bash
+pytest
+pytest --cov   # with coverage report
+```
+
+---
 
 ## Authors
 

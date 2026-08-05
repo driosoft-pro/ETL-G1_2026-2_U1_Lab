@@ -46,6 +46,10 @@ STEPS = [
 ]
 
 
+def clear_screen():
+    os.system("clear" if os.name == "posix" else "cls")
+
+
 def confirm(step_name: str) -> bool:
     resp = input(f"\nRun '{step_name}'? [y/N]: ").strip().lower()
     return resp in ("y", "yes")
@@ -61,142 +65,81 @@ def show_menu():
     print("=" * 50)
 
 
-def run_pipeline():
-    """Execute the full ETL pipeline step by step with progress."""
-    total = 8
-    logger.info("=== Starting ETL Pipeline ===")
-    print("\n--- Running Full Pipeline ---\n")
-
+def run_step(label: str, func, *args, **kwargs):
+    """Execute a step and print OK or ERROR."""
     try:
-        print(f"[1/{total}] Initializing database...")
-        db_path = DATA_DIR / "retail_analytics.db"
-        create_tables(db_path)
-        print(f"[1/{total}] Database initialized.\n")
-
-        print(f"[2/{total}] Extracting data...")
-        raw_data = extract_all(DATA_DIR / "raw")
-        print(f"[2/{total}] Extracted {len(raw_data)} datasets.\n")
-
-        print(f"[3/{total}] Profiling data...")
-        for name, df in raw_data.items():
-            profile = profile_dataframe(df)
-            logger.info(f"Profile for {name}: {profile}")
-        print(f"[3/{total}] Profiling done.\n")
-
-        print(f"[4/{total}] Cleaning data...")
-        cleaned_transactions = clean_transactions(raw_data["transactions"])
-        cleaned_refs = clean_references(
-            raw_data["products"], raw_data["stores"],
-            raw_data["promotions"], raw_data["targets"]
-        )
-        print(f"[4/{total}] Data cleaned.\n")
-
-        print(f"[5/{total}] Transforming data...")
-        integrated = transform_all(
-            cleaned_transactions, cleaned_refs["products"],
-            cleaned_refs["stores"], cleaned_refs["promotions"],
-            cleaned_refs["targets"]
-        )
-        print(f"[5/{total}] Data transformed.\n")
-
-        print(f"[6/{total}] Validating data...")
-        validation = validate_all(integrated, cleaned_refs)
-        if not validation["passed"]:
-            logger.error(f"Validation failed: {validation['errors']}")
-            raise ValueError("Data validation failed")
-        print(f"[6/{total}] Validation passed.\n")
-
-        print(f"[7/{total}] Loading data...")
-        load_to_csv(integrated, DATA_DIR / "processed" / "sales_analytics.csv")
-        load_to_sqlite(integrated, "sales_analytics", db_path)
-        print(f"[7/{total}] Data loaded.\n")
-
-        print(f"[8/{total}] Running analytical queries...")
-        results = run_queries(db_path)
-        for name, df in results.items():
-            logger.info(f"Query '{name}': {len(df)} rows returned")
-        print(f"[8/{total}] Queries done.\n")
-
-        print("=== ETL Pipeline completed successfully ===\n")
-
+        result = func(*args, **kwargs)
+        print(f"  {label} [ OK ]")
+        return result
     except Exception as e:
-        logger.error(f"Pipeline failed: {e}")
-        print(f"\nPipeline failed: {e}")
+        print(f"  {label} [ERROR] {e}")
+        logger.error(f"{label} failed: {e}")
         raise
 
 
-def step_initialize_db():
-    logger.info("Phase 0: Initialize SQLite database")
-    create_tables(DATA_DIR / "retail_analytics.db")
-    logger.info("Database initialized.")
+def run_pipeline():
+    """Execute the full ETL pipeline step by step with progress."""
+    total = 8
+    print("\n--- Running Full Pipeline ---\n")
+
+    try:
+        db_path = DATA_DIR / "retail_analytics.db"
+        run_step(f"[1/{total}] Initialize DB", create_tables, db_path)
+        raw_data = run_step(f"[2/{total}] Extract", extract_all, DATA_DIR / "raw")
+        run_step(f"[3/{total}] Profile", _run_profiles, raw_data)
+        cleaned = run_step(f"[4/{total}] Clean", _run_clean, raw_data)
+        integrated = run_step(f"[5/{total}] Transform", _run_transform, cleaned, raw_data)
+        run_step(f"[6/{total}] Validate", _run_validate, integrated, cleaned)
+        run_step(f"[7/{total}] Load", _run_load, integrated, db_path)
+        run_step(f"[8/{total}] Queries", run_queries, db_path)
+
+        print("\n=== ETL Pipeline completed successfully ===\n")
+
+    except Exception as e:
+        print(f"\n=== Pipeline aborted: {e} ===\n")
+        raise
 
 
-def step_extract():
-    logger.info("Phase 1: Extract")
-    raw_data = extract_all(DATA_DIR / "raw")
-    logger.info(f"Extracted {len(raw_data)} datasets.")
-    return raw_data
-
-
-def step_profile(raw_data):
-    logger.info("Phase 2: Profile")
+def _run_profiles(raw_data):
     for name, df in raw_data.items():
-        profile = profile_dataframe(df)
-        logger.info(f"Profile for {name}: {profile}")
+        profile_dataframe(df)
 
 
-def step_clean(raw_data):
-    logger.info("Phase 3: Clean")
+def _run_clean(raw_data):
     cleaned_transactions = clean_transactions(raw_data["transactions"])
     cleaned_refs = clean_references(
         raw_data["products"], raw_data["stores"],
         raw_data["promotions"], raw_data["targets"]
     )
-    logger.info("Data cleaned.")
     return cleaned_transactions, cleaned_refs
 
 
-def step_transform(cleaned_transactions, cleaned_refs):
-    logger.info("Phase 4: Transform")
-    integrated = transform_all(
+def _run_transform(cleaned, raw_data):
+    cleaned_transactions, cleaned_refs = cleaned
+    return transform_all(
         cleaned_transactions, cleaned_refs["products"],
         cleaned_refs["stores"], cleaned_refs["promotions"],
         cleaned_refs["targets"]
     )
-    logger.info("Data transformed and integrated.")
-    return integrated
 
 
-def step_validate(integrated, cleaned_refs):
-    logger.info("Phase 5: Validate")
+def _run_validate(integrated, cleaned):
+    _, cleaned_refs = cleaned
     validation = validate_all(integrated, cleaned_refs)
     if not validation["passed"]:
-        logger.error(f"Validation failed: {validation['errors']}")
-        raise ValueError("Data validation failed")
-    logger.info("Validation passed.")
-    return True
+        raise ValueError(f"Validation errors: {validation['errors']}")
 
 
-def step_load(integrated):
-    logger.info("Phase 6: Load")
-    db_path = DATA_DIR / "retail_analytics.db"
+def _run_load(integrated, db_path):
     load_to_csv(integrated, DATA_DIR / "processed" / "sales_analytics.csv")
     load_to_sqlite(integrated, "sales_analytics", db_path)
-    logger.info("Data loaded to CSV and SQLite.")
-
-
-def step_queries():
-    logger.info("Phase 7: Queries")
-    db_path = DATA_DIR / "retail_analytics.db"
-    results = run_queries(db_path)
-    for name, df in results.items():
-        logger.info(f"Query '{name}': {len(df)} rows returned")
 
 
 if __name__ == "__main__":
-    show_menu()
-
     while True:
+        clear_screen()
+        show_menu()
+
         choice = input("\nSelect an option: ").strip()
 
         if choice == "0":
@@ -206,43 +149,47 @@ if __name__ == "__main__":
         if choice == "9":
             if confirm("Run full pipeline"):
                 run_pipeline()
+            input("\nPress Enter to continue...")
             continue
 
         selected = next((s for s in STEPS if s[0] == choice), None)
         if not selected:
-            print("Invalid option. Try again.")
+            print("Invalid option.")
+            input("\nPress Enter to continue...")
             continue
 
         if not confirm(selected[1]):
+            input("\nPress Enter to continue...")
             continue
 
         try:
             if choice == "1":
-                step_initialize_db()
+                run_step("[1] Initialize DB", create_tables, DATA_DIR / "retail_analytics.db")
             elif choice == "2":
-                raw_data = step_extract()
+                run_step("[2] Extract", extract_all, DATA_DIR / "raw")
             elif choice == "3":
-                raw_data = extract_all(DATA_DIR / "raw")
-                step_profile(raw_data)
+                raw_data = run_step("[3.1] Extract", extract_all, DATA_DIR / "raw")
+                run_step("[3.2] Profile", _run_profiles, raw_data)
             elif choice == "4":
-                raw_data = extract_all(DATA_DIR / "raw")
-                cleaned_transactions, cleaned_refs = step_clean(raw_data)
+                raw_data = run_step("[4.1] Extract", extract_all, DATA_DIR / "raw")
+                run_step("[4.2] Clean", _run_clean, raw_data)
             elif choice == "5":
-                raw_data = extract_all(DATA_DIR / "raw")
-                cleaned_transactions, cleaned_refs = step_clean(raw_data)
-                integrated = step_transform(cleaned_transactions, cleaned_refs)
+                raw_data = run_step("[5.1] Extract", extract_all, DATA_DIR / "raw")
+                cleaned = run_step("[5.2] Clean", _run_clean, raw_data)
+                run_step("[5.3] Transform", _run_transform, cleaned, raw_data)
             elif choice == "6":
-                raw_data = extract_all(DATA_DIR / "raw")
-                cleaned_transactions, cleaned_refs = step_clean(raw_data)
-                integrated = step_transform(cleaned_transactions, cleaned_refs)
-                step_validate(integrated, cleaned_refs)
+                raw_data = run_step("[6.1] Extract", extract_all, DATA_DIR / "raw")
+                cleaned = run_step("[6.2] Clean", _run_clean, raw_data)
+                integrated = run_step("[6.3] Transform", _run_transform, cleaned, raw_data)
+                run_step("[6.4] Validate", _run_validate, integrated, cleaned)
             elif choice == "7":
-                raw_data = extract_all(DATA_DIR / "raw")
-                cleaned_transactions, cleaned_refs = step_clean(raw_data)
-                integrated = step_transform(cleaned_transactions, cleaned_refs)
-                step_load(integrated)
+                raw_data = run_step("[7.1] Extract", extract_all, DATA_DIR / "raw")
+                cleaned = run_step("[7.2] Clean", _run_clean, raw_data)
+                integrated = run_step("[7.3] Transform", _run_transform, cleaned, raw_data)
+                run_step("[7.4] Load", _run_load, integrated, DATA_DIR / "retail_analytics.db")
             elif choice == "8":
-                step_queries()
-        except Exception as e:
-            logger.error(f"Step failed: {e}")
-            print(f"Error: {e}")
+                run_step("[8] Queries", run_queries, DATA_DIR / "retail_analytics.db")
+        except Exception:
+            pass
+
+        input("\nPress Enter to continue...")
